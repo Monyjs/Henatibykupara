@@ -269,6 +269,10 @@
           <!-- Products will be enhanced with JS -->
         </div>
       </div>
+
+      <footer class="mt-auto py-6 text-center">
+        <p class="text-[10px] text-zinc-500 opacity-50 font-mono tracking-wider uppercase">Design by: Abdalla Hashim</p>
+      </footer>
     </div>
 
     <script type="text/javascript">
@@ -382,7 +386,14 @@
         message += `\n*${t.total}: ${total} ${t.currency}*`;
         
         const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/966510355649?text=${encodedMessage}`, '_blank');
+        const whatsappUrl = `https://wa.me/966510355649?text=${encodedMessage}`;
+        
+        // Kodular/AppInventor Bridge
+        if (window.AppInventor) {
+          window.AppInventor.setWebViewString(whatsappUrl);
+        } else {
+          window.open(whatsappUrl, '_blank');
+        }
       }
 
       function applyLanguage() {
@@ -562,7 +573,14 @@
         message += `${currentLang === 'ar' ? 'صورة المنتج' : 'Product Image'}: ${product.img}`;
         
         const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/966510355649?text=${encodedMessage}`, '_blank');
+        const whatsappUrl = `https://wa.me/966510355649?text=${encodedMessage}`;
+
+        // Kodular/AppInventor Bridge
+        if (window.AppInventor) {
+          window.AppInventor.setWebViewString(whatsappUrl);
+        } else {
+          window.open(whatsappUrl, '_blank');
+        }
       }
 
       // Lightbox Logic
