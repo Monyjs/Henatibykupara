@@ -223,7 +223,7 @@
         </div>
 
         <div class="relative aspect-[3/4] bg-black flex items-center justify-center overflow-hidden">
-          <video id="camera-preview" class="w-full h-full object-cover" autoplay playsinline></video>
+          <video id="camera-preview" class="w-full h-full object-cover" autoplay playsinline webkit-playsinline muted></video>
           <canvas id="camera-canvas" class="hidden"></canvas>
           <img id="tryon-result" class="hidden w-full h-full object-cover">
           
@@ -674,15 +674,30 @@
         captureBtn.classList.remove('hidden');
         retakeBtn.classList.add('hidden');
 
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert("متصفحك لا يدعم الوصول إلى الكاميرا. يرجى استخدام متصفح حديث مثل Chrome.");
+          closeTryOn();
+          return;
+        }
+
         try {
           stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'user' }, 
             audio: false 
           });
           video.srcObject = stream;
+          video.onloadedmetadata = () => {
+            video.play().catch(e => console.error("Video play failed:", e));
+          };
         } catch (err) {
           console.error("Error accessing camera:", err);
-          alert("تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن.");
+          let errorMsg = "تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن.";
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            errorMsg = "تم رفض إذن الكاميرا. يرجى منح الإذن من إعدادات المتصفح أو التطبيق.";
+          } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            errorMsg = "لم يتم العثور على كاميرا في هذا الجهاز.";
+          }
+          alert(errorMsg);
           closeTryOn();
         }
       }
