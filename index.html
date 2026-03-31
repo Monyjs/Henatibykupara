@@ -119,6 +119,11 @@
       body.light-mode #exclusive-title {
         color: #18181b;
       }
+
+      /* Camera Modal Styles */
+      #tryon-modal video {
+        transform: scaleX(-1);
+      }
     </style>
   </head>
   <body class="bg-black text-white font-sans overflow-hidden">
@@ -205,6 +210,43 @@
     </div>
     <div id="cart-overlay" onclick="toggleCart()" class="fixed inset-0 bg-black/60 z-[55] opacity-0 pointer-events-none transition-opacity duration-500"></div>
 
+    <!-- Try-On Modal -->
+    <div id="tryon-modal" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col items-center justify-center p-4">
+      <div class="w-full max-w-md bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 flex flex-col relative shadow-2xl">
+        <button onclick="closeTryOn()" class="absolute top-4 right-4 text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors z-[110]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+        
+        <div class="p-6 text-center border-b border-zinc-800">
+          <h3 class="text-xl font-bold text-yellow-500 mb-1" id="tryon-title">تجربة المنتج</h3>
+          <p class="text-sm text-zinc-400" id="tryon-subtitle">صوري يدك وجربي المنتج بالذكاء الاصطناعي</p>
+        </div>
+
+        <div class="relative aspect-[3/4] bg-black flex items-center justify-center overflow-hidden">
+          <video id="camera-preview" class="w-full h-full object-cover" autoplay playsinline></video>
+          <canvas id="camera-canvas" class="hidden"></canvas>
+          <img id="tryon-result" class="hidden w-full h-full object-cover">
+          
+          <div id="tryon-loading" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center hidden z-[120]">
+            <div class="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+            <p class="text-white font-bold text-lg" id="loading-text">جاري المعالجة بالذكاء الاصطناعي...</p>
+            <p class="text-zinc-400 text-sm mt-2">قد يستغرق ذلك بضع ثوانٍ</p>
+          </div>
+        </div>
+
+        <div class="p-6 flex gap-3 bg-zinc-900">
+          <button id="capture-btn" onclick="captureAndProcess()" class="flex-1 bg-yellow-500 text-black py-4 rounded-xl font-bold hover:bg-yellow-400 transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4.5A2.5 2.5 0 0 0 2 9.5v9A2.5 2.5 0 0 0 4.5 21h15a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 19.5 7H17l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            <span>التقاط صورة</span>
+          </button>
+          <button id="retake-btn" onclick="startCamera()" class="flex-1 bg-zinc-800 text-white py-4 rounded-xl font-bold hover:bg-zinc-700 transition-all active:scale-95 hidden flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            <span>إعادة المحاولة</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Lightbox Viewer -->
     <div id="lightbox" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col items-center justify-center p-4">
       <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors z-[110]">
@@ -290,7 +332,12 @@
           added: "تمت الإضافة للسلة!",
           currency: "ريال",
           langBtn: "English",
-          productName: "ملصق حناء"
+          productName: "ملصق حناء",
+          tryOn: "تجربة المنتج",
+          tryOnSubtitle: "صوري يدك وجربي المنتج بالذكاء الاصطناعي",
+          capture: "التقاط صورة",
+          retake: "إعادة المحاولة",
+          processing: "جاري المعالجة بالذكاء الاصطناعي..."
         },
         en: {
           settings: "Settings",
@@ -305,7 +352,12 @@
           added: "Added to cart!",
           currency: "SAR",
           langBtn: "العربية",
-          productName: "Henna Sticker"
+          productName: "Henna Sticker",
+          tryOn: "Try On",
+          tryOnSubtitle: "Take a photo of your hand and try the product with AI",
+          capture: "Capture Photo",
+          retake: "Retake",
+          processing: "Processing with AI..."
         }
       };
 
@@ -434,6 +486,13 @@
         if (document.getElementById('lang-btn')) document.getElementById('lang-btn').innerText = t.langBtn;
         if (document.getElementById('toast')) document.getElementById('toast').innerText = t.added;
         
+        // Update Try-On Modal Text
+        if (document.getElementById('tryon-title')) document.getElementById('tryon-title').innerText = t.tryOn;
+        if (document.getElementById('tryon-subtitle')) document.getElementById('tryon-subtitle').innerText = t.tryOnSubtitle;
+        if (document.getElementById('capture-btn')) document.getElementById('capture-btn').querySelector('span').innerText = t.capture;
+        if (document.getElementById('retake-btn')) document.getElementById('retake-btn').querySelector('span').innerText = t.retake;
+        if (document.getElementById('loading-text')) document.getElementById('loading-text').innerText = t.processing;
+
         renderProducts();
         renderCartItems();
         updateCartUI();
@@ -554,9 +613,14 @@
                 </button>
               </div>
 
-              <button onclick="orderProductWhatsApp(${product.id})" class="w-full bg-yellow-500 text-black py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-yellow-400 transition-all active:scale-95">
-                ${t.order}
-              </button>
+              <div class="flex gap-2">
+                <button onclick="openTryOn(${product.id})" class="w-12 bg-zinc-800 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center hover:bg-zinc-700 transition-all active:scale-95" title="${t.tryOn}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-camera"><path d="M14.5 4h-5L7 7H4.5A2.5 2.5 0 0 0 2 9.5v9A2.5 2.5 0 0 0 4.5 21h15a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 19.5 7H17l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                </button>
+                <button onclick="orderProductWhatsApp(${product.id})" class="flex-1 bg-yellow-500 text-black py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-yellow-400 transition-all active:scale-95">
+                  ${t.order}
+                </button>
+              </div>
             </div>
           `;
           grid.appendChild(card);
@@ -584,6 +648,142 @@
         } else {
           window.open(whatsappUrl, '_blank');
         }
+      }
+
+      // Try-On Logic
+      let currentTryOnProduct = null;
+      let stream = null;
+
+      async function openTryOn(productId) {
+        currentTryOnProduct = products.find(p => p.id === productId);
+        const modal = document.getElementById('tryon-modal');
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        
+        await startCamera();
+      }
+
+      async function startCamera() {
+        const video = document.getElementById('camera-preview');
+        const resultImg = document.getElementById('tryon-result');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+
+        video.classList.remove('hidden');
+        resultImg.classList.add('hidden');
+        captureBtn.classList.remove('hidden');
+        retakeBtn.classList.add('hidden');
+
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user' }, 
+            audio: false 
+          });
+          video.srcObject = stream;
+        } catch (err) {
+          console.error("Error accessing camera:", err);
+          alert("تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن.");
+          closeTryOn();
+        }
+      }
+
+      function closeTryOn() {
+        const modal = document.getElementById('tryon-modal');
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          stream = null;
+        }
+      }
+
+      async function captureAndProcess() {
+        const video = document.getElementById('camera-preview');
+        const canvas = document.getElementById('camera-canvas');
+        const loading = document.getElementById('tryon-loading');
+        const resultImg = document.getElementById('tryon-result');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+
+        // Capture frame
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        
+        // Flip horizontally for selfie mode
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageData = canvas.toDataURL('image/jpeg');
+        
+        // UI Updates
+        loading.classList.remove('hidden');
+        video.classList.add('hidden');
+        captureBtn.classList.add('hidden');
+
+        try {
+          // Process with Gemini
+          const processedImage = await processWithGemini(imageData, currentTryOnProduct.img);
+          
+          resultImg.src = processedImage;
+          resultImg.classList.remove('hidden');
+          retakeBtn.classList.remove('hidden');
+        } catch (err) {
+          console.error("AI Processing Error:", err);
+          alert("حدث خطأ أثناء معالجة الصورة بالذكاء الاصطناعي. يرجى المحاولة مرة أخرى.");
+          startCamera();
+        } finally {
+          loading.classList.add('hidden');
+        }
+      }
+
+      async function processWithGemini(userImageBase64, productImageUrl) {
+        // We use the provided API key
+        const apiKey = "AIzaSyAtnVbTfITyymjXPYTN4gkD7IFwnCb9yhw";
+        
+        // Fetch product image and convert to base64
+        // Use a proxy to bypass CORS for Pinterest images
+        const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(productImageUrl)}`;
+        const productResp = await fetch(proxiedUrl);
+        const productBlob = await productResp.blob();
+        const productBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(productBlob);
+        });
+
+        const userImageClean = userImageBase64.split(',')[1];
+
+        const prompt = "This is a photo of a person's hand and an image of a henna sticker. Please place the henna sticker on the hand naturally as if it were applied. The henna sticker is the second image provided. Return only the edited image.";
+
+        const payload = {
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: "image/jpeg", data: userImageClean } },
+              { inlineData: { mimeType: "image/jpeg", data: productBase64 } }
+            ]
+          }]
+        };
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        
+        if (result.candidates && result.candidates[0].content.parts) {
+          const imagePart = result.candidates[0].content.parts.find(p => p.inlineData);
+          if (imagePart) {
+            return `data:image/png;base64,${imagePart.inlineData.data}`;
+          }
+        }
+        
+        throw new Error("No image returned from AI");
       }
 
       // Lightbox Logic
